@@ -8,6 +8,13 @@
 #define MAX_DEPTH (10000)
 #define Astra_Pro (0x0403)
 
+#include <stdint.h>
+typedef struct{
+	uint8_t r;
+	uint8_t g;
+	uint8_t b;
+}RGB888Pixel;
+
 class SimpleViewer
 {
 public:
@@ -52,7 +59,7 @@ private:
     int                         m_height;
     unsigned int                m_nTexMapX;
     unsigned int                m_nTexMapY;
-	unsigned char*				m_pTexMap;
+	RGB888Pixel*				m_pTexMap;
 
 
    float			m_pDepthHist[MAX_DEPTH];

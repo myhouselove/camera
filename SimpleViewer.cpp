@@ -9,8 +9,8 @@
 
 #define RES_COLOR_WIDTH    640
 #define RES_COLOR_HEIGHT   480
-#define GL_WIN_SIZE_X   640
-#define GL_WIN_SIZE_Y   400
+#define GL_WIN_SIZE_X   800
+#define GL_WIN_SIZE_Y   600
 #define TEXTURE_SIZE    512
 
 #define MIN_NUM_CHUNKS(data_size, chunk_size)	((((data_size)-1) / (chunk_size) + 1))
@@ -38,8 +38,8 @@ void SimpleViewer::glutKeyboard(unsigned char key, int x, int y)
 SimpleViewer::SimpleViewer(int w,int h)
 {
 	m_self = this;
-	m_nTexMapX = w;
-	m_nTexMapY = h;
+	m_width = w;
+	m_height = h;
 	
 	//m_pTexMap = new unsigned char[w*h*3];
 	colorstop = false;
@@ -74,8 +74,8 @@ int SimpleViewer::init(int argc, char** argv)
 	if(ret == 0 ){
 		//cout<<"set resolution success"<<endl;
 	}
-	ref = new unsigned short[640*400];
-	dst = new unsigned short[640*400];
+	ref = new unsigned short[m_width*m_height];
+	dst = new unsigned short[m_width*m_height];
 	
 	cam->Open("/dev/video0");
 	cam->Init();
@@ -94,30 +94,56 @@ void SimpleViewer::loadCOLORFrame()
 	
 	unsigned int textMapX = m_nTexMapX;
 	unsigned int textMapY = m_nTexMapY;
-	m_nTexMapX = MIN_CHUNKS_SIZE(w, TEXTURE_SIZE);
-	m_nTexMapY = MIN_CHUNKS_SIZE(h, TEXTURE_SIZE);
+	m_nTexMapX = MIN_CHUNKS_SIZE(m_width, TEXTURE_SIZE);
+	m_nTexMapY = MIN_CHUNKS_SIZE(m_height, TEXTURE_SIZE);
 
-	if (textMapX != m_nTexMapX || textMapY != m_nTexMapY)
+	if (m_pTexMap== NULL)
 	{
-		delete[] m_pTexMap;
-		m_pTexMap = new unsigned char[m_nTexMapX * m_nTexMapY*3];
+printf("x=%d,y=%d\t",m_nTexMapX,m_nTexMapY);
+		m_pTexMap = new RGB888Pixel[m_nTexMapX * m_nTexMapY];
+memset(m_pTexMap,0,m_nTexMapX * m_nTexMapY*3);
+printf("32323");
+fflush(stdout);
 	}
+	
 		cam->getUVCData(ref);
-		int ret = orbbec_Shift_2_Depth(ref,dst,640,400);
-		//cv::Mat ds(400,640,CV_16SC1,dst);
-		//cv::imshow("dst",ds);
-		unsigned char* rgb888 = m_pTexMap;
-		for (int i = 0, j = 0; i < m_nTexMapX*m_nTexMapY * 3 && j < m_nTexMapX*m_nTexMapY; j++) 
+		//int ret = orbbec_Shift_2_Depth(ref,dst,m_width,m_height);
+		cv::Mat ds(m_height,m_width,CV_16SC1,ref);
+		cv::imshow("dst",ds);	
+		//cv::waitKey(0);
+		unsigned short* pDepData = ref;
+		RGB888Pixel* pTexRow = m_pTexMap;
+		for (int y = 0; y < m_height; ++y)
+		{
+			const unsigned short* pDepth = pDepData;
+			RGB888Pixel* pTex = pTexRow;
+			for (int x = 0; x < m_width; ++x,++pTex)
+			{
+				
+					int nHistValue = (int)((float)(*((unsigned short*)pDepth + y*640+x)) / 1500 * 255);
+					pTex->r = 0xff000000 | nHistValue << 16 | nHistValue << 8 | nHistValue;
+					pTex->g = 0xff000000 | nHistValue << 16 | nHistValue << 8 | nHistValue;
+					pTex->b = 0;
+				
+			
+			}
+
+			//pDepData += 640;
+			pTexRow += m_nTexMapX;
+		}
+
+/*
+		for (int i = 0, j = 0; i < m_height * m_width * 3 && j < m_height * m_width; j++) 
 		{
 			int value = (int)((float)(*((unsigned short*)dst + j)) / 1500 * 255);
 			rgb888[i] = 0x0;
 			rgb888[i + 1] = 0xff000000 | value << 16 | value << 8 | value;
 			rgb888[i + 2] = 0xff000000 | value << 16 | value << 8 | value;
 			i += 3;
-		}
+		}*/
 		//cv::Mat gl(400,640,CV_8UC3,m_pTexMap);
 		//cv::imshow("gl",gl);
-	//cv::waitKey(1);
+	
 
 }
 
